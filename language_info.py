@@ -70,8 +70,126 @@ class wals:
 
     def get_predefined_feature_sets(self, feature_set_type: str = None) -> List : 
         '''Return sets of features of interest, e.g. syntactic features'''
-
-        if feature_set_type == "syntactic":
+        
+        if feature_set_type == "phonological":
+            raise NotImplementedError
+        elif feature_set_type == "morphological":
+            features = ['20A-1',
+ '20A-2',
+ '20A-3',
+ '20A-4',
+ '20A-5',
+ '20A-6',
+ '20A-7',
+ '21A-1',
+ '21A-2',
+ '21A-3',
+ '21A-4',
+ '21A-5',
+ '21B-1',
+ '21B-2',
+ '21B-3',
+ '21B-4',
+ '21B-5',
+ '21B-6',
+ '26A-1',
+ '26A-2',
+ '26A-3',
+ '26A-4',
+ '26A-5',
+ '26A-6',
+ '27A-1',
+ '27A-2',
+ '27A-3',
+ '28A-1',
+ '28A-2',
+ '28A-3',
+ '28A-4',
+ '29A-1',
+ '29A-2',
+ '29A-3',
+ '30A-1',
+ '30A-2',
+ '30A-3',
+ '30A-4',
+ '30A-5',
+ '31A-1',
+ '31A-2',
+ '31A-3',
+ '32A-1',
+ '33A-1',
+ '33A-2',
+ '33A-3',
+ '33A-4',
+ '33A-5',
+ '33A-6',
+ '33A-7',
+ '33A-8',
+ '33A-9',
+ '34A-1',
+ '34A-2',
+ '34A-3',
+ '34A-4',
+ '34A-5',
+ '34A-6',
+ '35A-1',
+ '35A-2',
+ '35A-3',
+ '35A-4',
+ '35A-5',
+ '35A-6',
+ '35A-7',
+ '35A-8',
+ '37A-1',
+ '37A-2',
+ '37A-3',
+ '37A-4',
+ '37A-5',
+ '38A-1',
+ '38A-2',
+ '38A-3',
+ '38A-4',
+ '38A-5',
+ '39A-1',
+ '39A-2',
+ '39A-3',
+ '39A-4',
+ '39A-5',
+ '39B-1',
+ '39B-2',
+ '40A-1',
+ '40A-2',
+ '40A-3',
+ '40A-4',
+ '40A-5',
+ '44A-1',
+ '44A-2',
+ '44A-3',
+ '44A-4',
+ '44A-5',
+ '44A-6',
+ '45A-1',
+ '45A-2',
+ '45A-3',
+ '45A-4',
+ '65A-1',
+ '65A-2',
+ '66A-1',
+ '66A-2',
+ '66A-3',
+ '66A-4',
+ '67A-1',
+ '67A-2',
+ '68A-1',
+ '69A-1',
+ '69A-2',
+ '69A-3',
+ '69A-4',
+ '69A-5',
+ '70A-1',
+ '70A-2',
+ '70A-3']
+        elif feature_set_type == "syntactic":
             features = ['81A-1',
  '81A-2',
  '81A-3',
@@ -303,14 +421,10 @@ class wals:
  '144D',
  '144D',
  '144D']
-        elif feature_set_type == "phonological":
-            return 
-        elif feature_set_type == "morphological":
-            return 
         else:
             raise ValueError("Invalid feature set type")
 
-
+        return features
 
     def get_feature_vector(self, feature_set_type: str = None, feature_set: List = None):
         '''Given either a feature_set_type or feature set, return 
@@ -338,18 +452,19 @@ class wals:
         values of above features ordered by feature ID (all features by default)'''
 
         if not feature2idx:
+            # If no feature2idx is specified, use all features
             feature2idx, _ = self.get_feature_vector()
 
         lang_vector = [0] * len(feature2idx)
         with open(self.wals_values_path, 'r') as f:
             reader = csv.reader(f)
             header = next(reader)
-            id_idx = header.index("ID")
+            id_idx = header.index("Language_ID")
             feature_idx = header.index("Code_ID")
             value_idx = header.index("Value")
 
             for row in reader:
-                if row[id_idx] == language_id:
+                if row[id_idx] == language_id and row[feature_idx] in feature2idx:
                     lang_vector[feature2idx[row[feature_idx]]] = row[value_idx]
 
         return lang_vector
@@ -361,11 +476,13 @@ wals_obj = wals()
 wals_obj.get_feature_list()
 print(wals_obj.feature2desc)
 print(wals_obj.get_language_info("eng"))
+feature2idx, idx2feature = wals_obj.get_feature_vector(feature_set_type="syntactic")
+print(wals_obj.get_language_vector("eng", feature2idx))
 
 # Use stanza to get dependency parse of a sentence
-import stanza
-# stanza.download('en')
-nlp = stanza.Pipeline('en')
-doc = nlp("Barack Obama was born in Hawaii.  He was elected president in 2008.")
-print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
+# import stanza
+# # stanza.download('en')
+# nlp = stanza.Pipeline('en')
+# doc = nlp("Barack Obama was born in Hawaii.  He was elected president in 2008.")
+# print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
 
