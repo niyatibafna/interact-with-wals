@@ -18,6 +18,7 @@ WALS_DIR = "cldf-datasets-wals-878ea47/cldf/"
 
 class wals:
     def __init__(self, wals_datapath = None):
+        print("Reading WALS from ", wals_datapath)
         self.datapath = wals_datapath if wals_datapath else WALS_DIR
         # print(self.datapath, wals_datapath)
         self.feature2idx = {}
@@ -43,7 +44,7 @@ class wals:
             for row in reader:
                 self.feature2desc[row[id_idx]] = row[desc_idx]
 
-    def get_language_info(self, language_id: str):
+    def get_language_info(self, language_id: str = None, language_name: str = None):
         '''For a given language, get information about that language: language name and ISO-code,
         place spoken, phylogenetic family.
         Returns: lang2desc (dict): mapping from language id to language name, iso-code, place, family'''
@@ -66,8 +67,19 @@ class wals:
                                             "Macroarea": row[place_idx], \
                                             "Family": row[family_idx], \
                                             "Subfamily": row[subfamily_idx], \
-                                            "Genus": row[genus_idx]}
-        return lang2desc[language_id]
+                                            "Genus": row[genus_idx],\
+                                            "ID": row[id_idx]}
+        
+        print("Length of lang2desc: ", len(lang2desc))
+        if language_id:
+            return lang2desc[language_id]
+        if language_name:
+            for _, lang_desc in lang2desc.items():
+                # print(lang_desc["Name"])
+                if lang_desc["Name"].strip().casefold() == language_name.strip().casefold():
+                    return lang_desc
+            raise ValueError("Invalid language name")
+        raise ValueError("Provide either language ID or language name.")
 
     def get_predefined_feature_sets(self, feature_set_type: str = None) -> List : 
         '''Return sets of features of interest, e.g. syntactic features'''
