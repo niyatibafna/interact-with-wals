@@ -24,6 +24,9 @@ class wals:
         self.feature2idx = {}
         self.idx2feature = {}
         self.feature2desc = {}
+        self.lang2desc = {}
+        self.init_language_info() # fills in self.lang2desc
+
         self.wals_values_path = os.path.join(self.datapath, "values.csv")
         self.wals_codes_path = os.path.join(self.datapath, "codes.csv")
         self.wals_languages_path = os.path.join(self.datapath, "languages.csv")
@@ -44,12 +47,11 @@ class wals:
             for row in reader:
                 self.feature2desc[row[id_idx]] = row[desc_idx]
 
-    def get_language_info(self, language_id: str = None, language_name: str = None):
-        '''For a given language, get information about that language: language name and ISO-code,
+
+    def init_language_info(self):
+        '''For all languages, get language name and ISO-code,
         place spoken, phylogenetic family.
         Returns: lang2desc (dict): mapping from language id to language name, iso-code, place, family'''
-
-        lang2desc = {}
         with open(self.wals_languages_path, 'r') as f:
             reader = csv.reader(f)
             header = next(reader)
@@ -62,7 +64,7 @@ class wals:
             genus_idx = header.index("Genus")
 
             for row in reader:
-                lang2desc[row[id_idx]] = {"Name": row[name_idx], \
+                self.lang2desc[row[id_idx]] = {"Name": row[name_idx], \
                                             "ISO639P3code": row[iso639_code], \
                                             "Macroarea": row[place_idx], \
                                             "Family": row[family_idx], \
@@ -70,16 +72,26 @@ class wals:
                                             "Genus": row[genus_idx],\
                                             "ID": row[id_idx]}
         
-        print("Length of lang2desc: ", len(lang2desc))
+    def get_language_info(self, language_id: str = None, language_name: str = None):
+        '''For a given language, get information about that language: language name and ISO-code,
+        place spoken, phylogenetic family.
+        Args:
+            - language_id (str): language ID 
+            - language_name (str): language name (either one will work)
+        Returns: 
+            - lang2desc (dict): mapping from language id to language name, iso-code, place, family
+            - None, if language not found
+        '''
         if language_id:
-            return lang2desc[language_id]
+            return self.lang2desc[language_id] if language_id in self.lang2desc else None
         if language_name:
-            for _, lang_desc in lang2desc.items():
+            for _, lang_desc in self.lang2desc.items():
                 # print(lang_desc["Name"])
                 if lang_desc["Name"].strip().casefold() == language_name.strip().casefold():
                     return lang_desc
-            raise ValueError("Invalid language name")
+            return None
         raise ValueError("Provide either language ID or language name.")
+        
 
     def get_predefined_feature_sets(self, feature_set_type: str = None) -> List : 
         '''Return sets of features of interest, e.g. syntactic features'''
