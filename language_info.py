@@ -24,12 +24,14 @@ class wals:
         self.feature2idx = {}
         self.idx2feature = {}
         self.feature2desc = {}
-        self.lang2desc = {}
-        self.init_language_info() # fills in self.lang2desc
+        
+        
 
         self.wals_values_path = os.path.join(self.datapath, "values.csv")
         self.wals_codes_path = os.path.join(self.datapath, "codes.csv")
         self.wals_languages_path = os.path.join(self.datapath, "languages.csv")
+        self.lang2desc = {}
+        self.init_language_info() # fills in self.lang2desc
         # print(self.wals_codes_path)
 
     def get_feature_list(self):
