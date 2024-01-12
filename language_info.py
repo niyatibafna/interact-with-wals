@@ -17,7 +17,17 @@ from typing import List
 WALS_DIR = "cldf-datasets-wals-878ea47/cldf/"
 
 class wals:
-    def __init__(self, wals_datapath = None):
+    def __init__(self, wals_datapath = None, binary = False):
+        '''
+        Initialize the WALS object
+        Args:
+            - wals_datapath (str): path to the WALS data directory
+            - binary (bool): whether to use binary features (default: False). Each multi-value feature 
+                             is converted to a set of binary features, one for each value. feature2idx
+                             and idx2feature are updated accordingly to contain corresponding feature names;
+                             this is done internally.
+
+        '''
         print("Reading WALS from ", wals_datapath)
         self.datapath = wals_datapath if wals_datapath else WALS_DIR
         # print(self.datapath, wals_datapath)
@@ -25,29 +35,42 @@ class wals:
         self.idx2feature = {}
         self.feature2desc = {}
         
-        
+        self.binary = binary
 
         self.wals_values_path = os.path.join(self.datapath, "values.csv")
         self.wals_codes_path = os.path.join(self.datapath, "codes.csv")
         self.wals_languages_path = os.path.join(self.datapath, "languages.csv")
         self.lang2desc = {}
+
+        self.get_feature_description() # fills in self.feature2desc
         self.init_language_info() # fills in self.lang2desc
         # print(self.wals_codes_path)
 
-    def get_feature_list(self):
+    def get_feature_description(self):
         '''Get the list of features in the database, ordered by feature ID'''
         # Extract columns named "ID" and "Description from self.wals_codes_path"
-        # and store them in self.feature2idx and self.feature2desc
+        # and store them in self.feature2desc
+        # This creates a dict of structure
+        # feature2desc = {gen_feature_id: {feature_id1: {"Description": feature_description},
+        #                                  feature_id2: {"Description": feature_description},
+        #                                   "max_value": max_value for that param_id}
 
         with open(self.wals_codes_path, 'r') as f:
 
             reader = csv.reader(f)
             header = next(reader)
-            id_idx = header.index("Parameter_ID")
+            paramid_idx = header.index("Parameter_ID")
             desc_idx = header.index("Description")
+            id_idx = header.index("ID")
 
             for row in reader:
-                self.feature2desc[row[id_idx]] = row[desc_idx]
+                if row[paramid_idx] not in self.feature2desc:
+                    self.feature2desc[row[paramid_idx]] = {}
+                    self.feature2desc[row[paramid_idx]]["max_value"] = 0
+                id = int(row[id_idx].split("-")[1])
+                self.feature2desc[row[paramid_idx]][row[id_idx]] = {"Description": row[desc_idx]}
+                self.feature2desc[row[paramid_idx]]["max_value"] = \
+                    max(self.feature2desc[row[paramid_idx]]["max_value"], id)
 
 
     def init_language_info(self):
@@ -66,7 +89,7 @@ class wals:
             genus_idx = header.index("Genus")
 
             for row in reader:
-                self.lang2desc[row[id_idx]] = {"Name": row[name_idx], \
+                self.lang2desc[row[iso639_code]] = {"Name": row[name_idx], \
                                             "ISO639P3code": row[iso639_code], \
                                             "Macroarea": row[place_idx], \
                                             "Family": row[family_idx], \
@@ -93,10 +116,15 @@ class wals:
                     return lang_desc
             return None
         raise ValueError("Provide either language ID or language name.")
-        
-
+    
     def get_predefined_feature_sets(self, feature_set_type: str = None) -> List : 
-        '''Return sets of features of interest, e.g. syntactic features'''
+        '''Return sets of features of interest, e.g. syntactic features
+        Args:
+            - feature_set_type (str): type of feature set to return
+        Returns:
+            - features (list): list of features of interest
+            - num_values_per_feature (list): number of values per feature (relevant for binary features)
+        '''
         
         if feature_set_type == "phonological":
             raise NotImplementedError
@@ -166,11 +194,31 @@ class wals:
 '144A',
 '144C',
 '144D',]
-
         else:
             raise ValueError("Invalid feature set type")
-
+        
         return features
+
+    def _binarize_feature_set(self, feature_set):
+        '''Given a feature vector set, binarize it by converting each multi-value feature 
+        to a set of binary features, one for each value.
+        This function is called internally by get_feature_vector() if self.binary is True.
+        Args:
+            - feature_set (list): feature vector
+        Returns:
+            - feature_set (list): binarized feature vector, with cell for each binary feature
+        '''
+        binarized_feature_set = []
+        for feature in feature_set:
+            if feature in self.feature2desc:
+                for i in range(1, self.feature2desc[feature]["max_value"]+1):
+                    binarized_feature_set.append(feature + "-" + str(i)) # e.g. 81A-1, we 
+                    # just reconstruct the feature ID from the param_id and the value
+                    # These are just the keys of self.feature2desc[feature]
+                    # so we can do this more neatly, but this way is more explicit
+            else:
+                raise ValueError("Invalid feature ID in binarize_feature_set()")
+        return binarized_feature_set
 
     def get_feature_vector(self, feature_set_type: str = None, feature_set: List = None):
         '''Given either a feature_set_type or feature set, return 
@@ -180,9 +228,12 @@ class wals:
 
         if feature_set_type:
             feature_set = self.get_predefined_feature_sets(feature_set_type)
-        if not feature_set:
+        elif not feature_set:
             # If no feature set is specified, use all features
             feature_set = list(self.feature2desc.keys())
+        
+        if self.binary:
+            feature_set = self._binarize_feature_set(feature_set)
         
         feature2idx = {}
         idx2feature = {}
@@ -209,26 +260,26 @@ class wals:
             feature_idx = header.index("Parameter_ID")
             value_idx = header.index("Value")
 
-            for row in reader:
-                if row[id_idx] == language_id and row[feature_idx] in feature2idx:
-                    lang_vector[feature2idx[row[feature_idx]]] = int(row[value_idx])
+            if self.binary:
+                # reconstruct feature ID from param_id and value
+                # This is the same as Code-ID in the codes.csv file
+                for row in reader:
+                    feature = row[feature_idx] + "-" + row[value_idx] 
+                    if row[id_idx] == language_id and feature in feature2idx:
+                        lang_vector[feature2idx[feature]] = 1
+
+            else:
+                for row in reader:
+                    if row[id_idx] == language_id and row[feature_idx] in feature2idx:
+                        lang_vector[feature2idx[row[feature_idx]]] = int(row[value_idx])
 
         return lang_vector
 
 
-
-
-# wals_obj = wals()
-# wals_obj.get_feature_list()
+# wals_obj = wals(binary = True)
 # print(wals_obj.feature2desc)
 # print(wals_obj.get_language_info("eng"))
 # feature2idx, idx2feature = wals_obj.get_feature_vector(feature_set_type="syntactic")
 # print(wals_obj.get_language_vector("eng", feature2idx))
 
-# Use stanza to get dependency parse of a sentence
-# import stanza
-# # stanza.download('en')
-# nlp = stanza.Pipeline('en')
-# doc = nlp("Barack Obama was born in Hawaii.  He was elected president in 2008.")
-# print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
-
+# print(feature2idx)
