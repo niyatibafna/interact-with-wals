@@ -278,8 +278,10 @@ class wals:
 
 # wals_obj = wals(binary = True)
 # print(wals_obj.feature2desc)
-# print(wals_obj.get_language_info("eng"))
+# print(wals_obj.get_language_info("hin"))
 # feature2idx, idx2feature = wals_obj.get_feature_vector(feature_set_type="syntactic")
-# print(wals_obj.get_language_vector("eng", feature2idx))
+# vector = wals_obj.get_language_vector("hin", feature2idx)
+# for i in range(len(vector)):
+#     print(idx2feature[i], vector[i], wals_obj.feature2desc[idx2feature[i].split("-")[0]][idx2feature[i]]["Description"])
 
-# print(feature2idx)
+
