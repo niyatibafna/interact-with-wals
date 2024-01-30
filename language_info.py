@@ -47,13 +47,14 @@ class wals:
         # print(self.wals_codes_path)
 
     def get_feature_description(self):
-        '''Get the list of features in the database, ordered by feature ID'''
-        # Extract columns named "ID" and "Description from self.wals_codes_path"
-        # and store them in self.feature2desc
-        # This creates a dict of structure
-        # feature2desc = {gen_feature_id: {feature_id1: {"Description": feature_description},
-        #                                  feature_id2: {"Description": feature_description},
-        #                                   "max_value": max_value for that param_id}
+        '''Get the list of features in the database, ordered by feature ID
+        Extract columns named "ID" and "Description from self.wals_codes_path"
+        and store them in self.feature2desc
+        This creates a dict of structure
+        feature2desc = {gen_feature_id (81A): {feature_id1 (81A-1): {"Description": feature_description},
+                                         feature_id2 (81A-2): {"Description": feature_description},
+                                          "max_value": max_value for that param_id}
+        '''
 
         with open(self.wals_codes_path, 'r') as f:
 
@@ -129,32 +130,7 @@ class wals:
         if feature_set_type == "phonological":
             raise NotImplementedError
         elif feature_set_type == "morphological":
-            features = ['20A',
- '21A',
- '21B',
- '26A',
- '27A',
- '28A',
- '29A',
- '30A',
- '31A',
- '32A',
- '33A',
- '34A',
- '35A',
- '37A',
- '38A',
- '39A',
- '39B',
- '40A',
- '44A',
- '45A',
- '65A',
- '66A',
- '67A',
- '68A',
- '69A',
- '70A']
+            features = ['22A', '26A', '27A', '28A', '29A', '30A', '33A', '34A', '37A', '38A', '49A', '51A', '57A', '59A', '65A', '66A', '67A', '69A', '70A', '73A', '74A', '75A', '78A', '94A', '101A', '102A', '111A', '112A']
         elif feature_set_type == "syntactic":
             features = ['81A',
 '81B',
